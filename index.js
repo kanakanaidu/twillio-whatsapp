@@ -9,8 +9,8 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 // Middleware
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+app.use(bodyParser.json({ limit: '50mb' }));
 app.use(cors());
 
 // Twilio credentials from environment variables
@@ -20,15 +20,21 @@ const client = twilio(accountSid, authToken);
 
 // Endpoint to send WhatsApp message
 app.post('/send-whatsapp', (req, res) => {
-    const { to, message } = req.body;
-
+    const { to, message, media } = req.body;
+    // console.log(message);
     client.messages.create({
-        body: message,
         from: 'whatsapp:+14155238886', // Twilio Sandbox WhatsApp number
-        to: `whatsapp:${to}`
+        to: `whatsapp:${to}`,
+        body: message,
+        mediaUrl: [`${media}`]
+        // media: [`data:image/png;base64,${media}`]
     })
-    .then(message => res.status(200).send({ success: true, messageSid: message.sid }))
-    .catch(error => res.status(500).send({ success: false, error: error.message }));
+        .then(
+            message => {
+                console.log(`Invoice sent successfully ${message.sid}`);
+                res.status(200).send({ success: true, messageSid: message.sid })
+            })
+        .catch(error => res.status(500).send({ success: false, error: error.message }));
 });
 
 app.listen(port, () => {
